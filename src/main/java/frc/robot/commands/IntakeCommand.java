@@ -12,8 +12,8 @@ public class IntakeCommand extends Command {
         this.m_intake = intake;
         this.m_conveyor = conveyor;
 
-        addRequirements(intake);
-        addRequirements(conveyor);
+        addRequirements(m_intake);
+        addRequirements(m_conveyor);
     }
 
     @Override
@@ -37,8 +37,8 @@ public class IntakeCommand extends Command {
         m_conveyor.stop();
     }
 
-    @Override
-    public boolean isFinished() {
-        return true;
-    }
+    // @Override
+    // public boolean isFinished() {
+    //     return true;
+    // }
 }

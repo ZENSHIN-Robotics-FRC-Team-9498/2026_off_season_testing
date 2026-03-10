@@ -1,111 +1,120 @@
 package frc.robot.subsystems;
 
+import static edu.wpi.first.units.Units.Inches;
+import static edu.wpi.first.units.Units.Kilograms;
 
-import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.SparkMax;
+
+import edu.wpi.first.math.Pair;
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.LinearVelocity;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.constants.Constants.ShooterConstants;
-import frc.robot.utils.SparkMAXContainer;
 
-public class ShooterSubsystem extends SubsystemBase {
-    private final SparkMAXContainer actuatorMotor = new SparkMAXContainer(ShooterConstants.ACTUATOR_CAN_ID);
-    private final SparkMAXContainer flywheelMotor_1 = new SparkMAXContainer(ShooterConstants.SHOOTER_1_CAN_ID);
-    private final SparkMAXContainer flywheelMotor_2 = new SparkMAXContainer(ShooterConstants.SHOOTER_2_CAN_ID);
+import java.util.function.Supplier;
+import yams.gearing.MechanismGearing;
+import yams.mechanisms.config.FlyWheelConfig;
+import yams.mechanisms.velocity.FlyWheel;
+import yams.motorcontrollers.SmartMotorController;
+import yams.motorcontrollers.SmartMotorControllerConfig;
+import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
+import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
+import yams.motorcontrollers.SmartMotorControllerConfig.TelemetryVerbosity;
+import yams.motorcontrollers.local.SparkWrapper;
 
-    private int flywheel_tolerance = 50;
+public class ShooterSubsystem extends SubsystemBase
+{
+    private final SparkMax flywheelMotor1 = new SparkMax(ShooterConstants.SHOOTER_1_CAN_ID, MotorType.kBrushless);
+    private final SparkMax flywheelMotor2 = new SparkMax(ShooterConstants.SHOOTER_2_CAN_ID, MotorType.kBrushless);
 
-    private double flywheelRPM;
+    private final boolean flywheelMotor2Inverted = true;
 
-    private double flywheelkP;
-    private double flywheelkI;
-    private double flywheelkD;
+    private final SmartMotorControllerConfig motorConfig = new SmartMotorControllerConfig(this)
+        .withClosedLoopController(1, 0, 0)
+        .withGearing(new MechanismGearing(1))
+        .withIdleMode(MotorMode.COAST)
+        .withTelemetry("ShooterMotor", TelemetryVerbosity.HIGH)
+        //.withStatorCurrentLimit(Amps.of(40))
+        .withMotorInverted(false)
+        .withFeedforward(new SimpleMotorFeedforward(0, 0, 0))
+        .withFollowers(Pair.of(flywheelMotor2, flywheelMotor2Inverted))
+        .withControlMode(ControlMode.CLOSED_LOOP);
+    private final SmartMotorController motor = new SparkWrapper(flywheelMotor1, DCMotor.getNEO(1), motorConfig);
+    private final FlyWheelConfig shooterConfig = new FlyWheelConfig(motor)
+        // Diameter of the flywheel.
+        .withDiameter(Inches.of(ShooterConstants.FLYWHEEL_DIAMETER_INCHES))
+        // Mass of the flywheel.
+        .withMass(Kilograms.of(ShooterConstants.FLYWHEEL_MASS_KG))
+        .withTelemetry("Shooter", TelemetryVerbosity.HIGH);
+    private final FlyWheel shooter = new FlyWheel(shooterConfig);
 
-    public boolean flywheelIsSet = false;
-
-    
-    private double actuatorPos;
-
-    private double actuatorkP;
-    private double actuatorkI;
-    private double actuatorkD;
-
-    public ShooterSubsystem() {
-        actuatorMotor.motor.getEncoder().setPosition(0);
-
-        flywheelMotor_1.assignPIDValues(flywheelkP, flywheelkI, flywheelkD);
-        flywheelMotor_2.setupAsFollowerMotor(flywheelMotor_1, true);
-        actuatorMotor.assignPIDValues(actuatorkP, actuatorkI, actuatorkD);
-
-        actuatorMotor.setBreakMode(true);
-
-        SmartDashboard.putNumber("Set flywheel_kP", 0.1);
-        SmartDashboard.putNumber("Set flywheel_kI", 0);
-        SmartDashboard.putNumber("Set flywheel_kD", 0);
-
-        SmartDashboard.putNumber("Set flywheelRPM", 0);
-
-
-        SmartDashboard.putNumber("Set shooter actuator_kP", 0.1);
-        SmartDashboard.putNumber("Set shooter actuator_kI", 0);
-        SmartDashboard.putNumber("Set shooter actuator_kD", 0);
-
-        SmartDashboard.putNumber("Set shooter actuator degrees", 0);
-    }
+    public ShooterSubsystem() {}
 
     /**
-     * 
-     * Set shooter speed based off network table values
-     * 
+     * Gets the current velocity of the shooter.
+     *
+     * @return FlyWheel velocity.
      */
-    public void setShooterSpeed() {
-        flywheelMotor_1.setVelocity(flywheelRPM);
-    }
+    public AngularVelocity getVelocity() {return shooter.getSpeed();}
 
-    public void setActuatorAngle() {
-        actuatorMotor.goToPostion(actuatorPos / 360);
-    }
+    /**
+     * Set the shooter velocity.
+     *
+     * @param speed Speed to set.
+     * @return {@link edu.wpi.first.wpilibj2.command.RunCommand}
+     */
+    public Command setVelocity(AngularVelocity speed) {return shooter.setSpeed(speed);}
 
-    public void setActuatorAngle(double degrees) {
-        actuatorMotor.goToPostion(degrees);
-    }
+    /**
+     * Set the dutycycle of the shooter.
+     *
+     * @param dutyCycle DutyCycle to set.
+     * @return {@link edu.wpi.first.wpilibj2.command.RunCommand}
+     */
+    public Command set(double dutyCycle) {return shooter.set(dutyCycle);}
 
-    public void stop() {
-        actuatorMotor.motor.stopMotor();
-        flywheelMotor_1.motor.stopMotor();
-        flywheelMotor_2.motor.stopMotor();
+
+    public Command setDutyCycle(Supplier<Double> dutyCycle) {return shooter.set(dutyCycle);}
+
+    public Command setVelocity(Supplier<AngularVelocity> speed) {return shooter.run(speed);}
+
+    @Override
+    public void simulationPeriodic()
+    {
+        shooter.simIterate();
     }
 
     @Override
-    public void periodic() {
-        flywheelkP = SmartDashboard.getNumber("Set flywheel_kP", 0.1);
-        flywheelkI = SmartDashboard.getNumber("Set flywheel_kI", 0);
-        flywheelkD = SmartDashboard.getNumber("Set flywheel_kD", 0);
-
-        flywheelMotor_1.assignPIDValues(flywheelkP, flywheelkI, flywheelkD); // remove in prod
-
-        // Change to linear regresion line
-        flywheelRPM = SmartDashboard.getNumber("Set flywheelRPM", 0);
-
-
-        actuatorkP = SmartDashboard.getNumber("Set shooter actuator_kP", 0.1);
-        actuatorkI = SmartDashboard.getNumber("Set shooter actuator_kI", 0);
-        actuatorkD = SmartDashboard.getNumber("Set shooter actuator_kD", 0);
-
-        actuatorPos = SmartDashboard.getNumber("Set shooter actuator degrees", 0) / 360;
-
-        SmartDashboard.putNumber("Real shooter acutator degrees", actuatorMotor.getPosition() * 360);
-        SmartDashboard.putNumber("Real flywheelRPM", flywheelMotor_1.getVelocity());
-
-        if(flywheelRPM < 3500) {
-            flywheel_tolerance = 50;
-        } else if(flywheelRPM < 4500) {
-            flywheel_tolerance = 100;
-        } else {
-            flywheel_tolerance = 200;
-        }
-
-        flywheelIsSet = MathUtil.isNear(flywheelRPM, flywheelMotor_1.getVelocity(), flywheel_tolerance);
-
-        SmartDashboard.putBoolean("Flywheel reved up", flywheelIsSet);
+    public void periodic()
+    {
+        shooter.updateTelemetry();
     }
+
+    public void setRPM(LinearVelocity newHorizontalSpeed)
+    {
+        shooter.setMeasurementVelocitySetpoint(newHorizontalSpeed);
+    }
+
+    public boolean readyToShoot(AngularVelocity tolerance)
+    {
+        if (motor.getMechanismSetpointVelocity().isEmpty())
+        {return false;}
+        return motor.getMechanismVelocity().isNear(motor.getMechanismSetpointVelocity().orElseThrow(), tolerance);
+    }
+
+    public void setVelocitySetpoint(AngularVelocity speed)
+    {
+        shooter.setMechanismVelocitySetpoint(speed);
+    }
+
+    public void setDutyCycleSetpoint(double dutyCycle)
+    {
+        shooter.setDutyCycleSetpoint(dutyCycle);
+    }
+
+    public void stop() {setDutyCycleSetpoint(0);}
 }

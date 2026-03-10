@@ -6,7 +6,6 @@ import com.pathplanner.lib.auto.NamedCommands;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.commands.AdvancedFireCommand;
 import frc.robot.commands.IntakeCommand;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.ConveyorSubsystem;
@@ -41,7 +40,6 @@ public class AutoContainer {
     }
 
     private void configureAutoBindings() {
-        NamedCommands.registerCommand("Advanced Fire", new AdvancedFireCommand(m_turret, m_shooter, m_feeder, m_conveyor));
         NamedCommands.registerCommand("Slurp", new IntakeCommand(m_intake, m_conveyor));
 
         autoChooser = AutoBuilder.buildAutoChooser(); // Default auto will be `Commands.none()`

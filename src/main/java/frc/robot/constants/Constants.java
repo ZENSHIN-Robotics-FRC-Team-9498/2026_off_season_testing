@@ -83,6 +83,9 @@ public final class Constants {
     public static final int SHOOTER_1_CAN_ID = 36;
     public static final int SHOOTER_2_CAN_ID = 37;
     public static final int ACTUATOR_CAN_ID = 38;
+
+    public static final int FLYWHEEL_DIAMETER_INCHES = 4;
+    public static final double FLYWHEEL_MASS_KG = 1;
   }
 
   public static final class LimelightConstants {

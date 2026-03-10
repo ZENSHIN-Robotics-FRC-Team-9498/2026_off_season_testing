@@ -16,6 +16,7 @@ import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -243,6 +244,13 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         double snappedShifted = Math.round(shiftedAngle / (Math.PI / 2.0)) * (Math.PI / 2.0);
         return snappedShifted + Math.PI / 4;
     }
+
+    public ChassisSpeeds getFieldRelativeSpeeds() {
+    return ChassisSpeeds.fromRobotRelativeSpeeds(
+        this.getState().Speeds,
+        this.getState().Pose.getRotation()
+    );
+}
 
     private final SwerveRequest.FieldCentric m_driveRequest = new SwerveRequest.FieldCentric();
 

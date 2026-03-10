@@ -57,8 +57,8 @@ public class JumpBumpCommand extends Command {
         
     }
 
-    @Override
-    public boolean isFinished() {
-        return true;
-    }
+    // @Override
+    // public boolean isFinished() {
+    //     return true;
+    // }
 }

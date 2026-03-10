@@ -33,7 +33,7 @@ public class AlignmentCommand extends Command {
         this.targetDistanceMeters = targetDistanceMeters;
         this.vision = vision;
         this.controller = controller;
-        addRequirements(drive);
+        addRequirements(drive, vision);
     }
 
     @Override

@@ -1,126 +1,139 @@
 package frc.robot.subsystems;
 
 
-import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import static edu.wpi.first.units.Units.Amps;
+import static edu.wpi.first.units.Units.Degrees;
+import static edu.wpi.first.units.Units.DegreesPerSecond;
+import static edu.wpi.first.units.Units.DegreesPerSecondPerSecond;
+import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.Radians;
+import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static edu.wpi.first.units.Units.Seconds;
+
+import com.ctre.phoenix6.hardware.TalonFX;
+import edu.wpi.first.math.controller.ArmFeedforward;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Transform2d;
+import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.Telemetry;
 import frc.robot.constants.Constants.TurretConstants;
-import frc.robot.constants.Constants.AprilTagConstants;
-import frc.robot.utils.TalonFxContainer;
+import yams.gearing.MechanismGearing;
+import yams.mechanisms.config.MechanismPositionConfig;
+import yams.mechanisms.config.PivotConfig;
+import yams.mechanisms.positional.Pivot;
+import yams.motorcontrollers.SmartMotorController;
+import yams.motorcontrollers.SmartMotorControllerConfig;
+import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
+import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
+import yams.motorcontrollers.SmartMotorControllerConfig.TelemetryVerbosity;
+import yams.motorcontrollers.remote.TalonFXWrapper;
 
-public class TurretSubsystem extends SubsystemBase {
-    private final TalonFxContainer m_motor = new TalonFxContainer(TurretConstants.TURRET_CAN_ID);
+public class TurretSubsystem extends SubsystemBase
+{
 
-    private final VisionSubsystem m_vision;
+    private final TalonFX turretMotor = new TalonFX(TurretConstants.TURRET_CAN_ID);//, MotorType.kBrushless);
+    private final SmartMotorControllerConfig motorConfig = new SmartMotorControllerConfig(this)
+        .withClosedLoopController(4, 0, 0, DegreesPerSecond.of(180), DegreesPerSecondPerSecond.of(90))
+        .withSoftLimit(Degrees.of(-30), Degrees.of(100))
+        .withGearing(new MechanismGearing(36))
+        .withIdleMode(MotorMode.BRAKE)
+        .withTelemetry("TurretMotor", TelemetryVerbosity.HIGH)
+        .withStatorCurrentLimit(Amps.of(40))
+        .withMotorInverted(false)
+        .withClosedLoopRampRate(Seconds.of(0.25))
+        .withOpenLoopRampRate(Seconds.of(0.25))
+        .withFeedforward(new ArmFeedforward(0, 0, 0, 0))
+        .withControlMode(ControlMode.CLOSED_LOOP);
 
-    private double turret_kP;
-    private double turret_kI;
-    private double turret_kD;
+    private final SmartMotorController motor = new TalonFXWrapper(turretMotor, DCMotor.getNEO(1), motorConfig);
 
-    public boolean onTarget = false;
+    private final MechanismPositionConfig robotToMechanism = new MechanismPositionConfig()
+        .withMaxRobotHeight(Meters.of(1.5))
+        .withMaxRobotLength(Meters.of(0.75))
+        .withRelativePosition(new Translation3d(Meters.of(0), Meters.of(0), Meters.of(0)));
+        // TODO: fill in the above with actual measurements,
+        // x = forward/back offset
+        // y = left/right offset
+        // z = height above robot origin
+        // yaw = turret mounting rotation (usually 0)
 
-    public TurretSubsystem(VisionSubsystem vision) {
-        this.m_vision = vision;
-        
-        m_motor.setBreakMode(true);
+    private final PivotConfig m_config = new PivotConfig(motor)
+        .withHardLimit(Degrees.of(-100), Degrees.of(200))
+        .withTelemetry("Turret", TelemetryVerbosity.HIGH)
+        .withStartingPosition(Degrees.of(0))
+        .withMechanismPositionConfig(robotToMechanism);
 
-        m_motor.assignPIDValues(turret_kP, turret_kI, turret_kD);
+    private final Pivot turret = new Pivot(m_config);
 
-        SmartDashboard.putNumber("Set turret_kP", 2.4);
-        SmartDashboard.putNumber("Set turret_kI", 0);
-        SmartDashboard.putNumber("Set turret_kD", 0.1);
+    // Robot to turret transform, from center of robot to turret.
+    // TODO: fill this in with proper measurements.
+    // x = forward/back offset
+    // y = left/right offset
+    // z = height above robot origin
+    // yaw = turret mounting rotation (usually 0)
+    private final Transform3d roboToTurret = new Transform3d(Meters.of(0), Meters.of(0), Meters.of(0), Rotation3d.kZero);
+
+    public TurretSubsystem()
+    {
+        // TODO: Set the default command, if any, for this subsystem by calling setDefaultCommand(command)
+        //       in the constructor or in the robot coordination class, such as RobotContainer.
+        //       Also, you can call addChild(name, sendableChild) to associate sendables with the subsystem
+        //       such as SpeedControllers, Encoders, DigitalInputs, etc.
     }
 
-    public void setTurretAngle(double angleDegrees) {
-        // convert turret degrees -> motor rotations before commanding
-        m_motor.goToPostion(degreesToMotorRotations(angleDegrees));
+    public Pose2d getPose(Pose2d robotPose)
+    {
+        return robotPose.plus(new Transform2d(
+            roboToTurret.getTranslation().toTranslation2d(), roboToTurret.getRotation().toRotation2d()));
     }
 
-    private double degreesToMotorRotations(double degrees) {
-        // turret degrees -> turret rotations -> motor rotations
-        // turret rotations = degrees / 360
-        // motor rotations = turret rotations * GEAR_RATIO
-        return (degrees / 360.0) * TurretConstants.GEAR_RATIO;
+    public ChassisSpeeds getVelocity(ChassisSpeeds robotVelocity, Angle robotAngle)
+    {
+        var robotAngleRads = robotAngle.in(Radians);
+        double turretVelocityX =
+            robotVelocity.vxMetersPerSecond
+            + robotVelocity.omegaRadiansPerSecond
+            * (roboToTurret.getY() * Math.cos(robotAngleRads)
+                - roboToTurret.getX() * Math.sin(robotAngleRads));
+        double turretVelocityY =
+            robotVelocity.vyMetersPerSecond
+            + robotVelocity.omegaRadiansPerSecond
+            * (roboToTurret.getX() * Math.cos(robotAngleRads)
+                - roboToTurret.getY() * Math.sin(robotAngleRads));
+
+        return new ChassisSpeeds(turretVelocityX,
+                                turretVelocityY,
+                                robotVelocity.omegaRadiansPerSecond + motor.getMechanismVelocity().in(RadiansPerSecond));
     }
 
-    public double getTurretAngle() {
-        // motor rotations -> turret degrees
-        double motorRotations = m_motor.motor.getPosition().getValueAsDouble();
-        return motorRotationsToTurretDegrees(motorRotations);
+    public void periodic()
+    {
+        turret.updateTelemetry();
     }
 
-    private double motorRotationsToTurretDegrees(double motorRotations) {
-        // turret rotations = motorRotations / GEAR_RATIO
-        // degrees = turret rotations * 360
-        return (motorRotations / TurretConstants.GEAR_RATIO) * 360.0;
-    }
-    
-    public void autoAimWithLimelight() {
-        // only act if target valid
-        if (!m_vision.hasTarget()) {
-            onTarget = false;
-            return;
-        }
-
-        boolean nope = true;
-        
-        if(Telemetry.isRedAlliance()) {
-            for(int i = 0; i < 6; i++) {
-                if(m_vision.isTrackingTag(AprilTagConstants.VALID_RED_HUB_TAG_IDS[i])) {
-                    nope = false;
-                    break;
-                }
-            }
-            if(nope == true) {
-                onTarget = false;
-                return;
-            }
-        } else {
-            for(int i = 0; i < 6; i++) {
-                if(m_vision.isTrackingTag(AprilTagConstants.VALID_BLUE_HUB_TAG_IDS[i])) {
-                    nope = false;
-                    break;
-                }
-            }
-            if(nope == true) {
-                onTarget = false;
-                return;
-            }
-        }
-
-        double tx = m_vision.getTx(); // degrees offset (crosshair -> target)
-        if (Math.abs(tx) < TurretConstants.AIM_DEADBAND_DEG) {
-            onTarget = true;
-            return;
-        }
-
-        onTarget = false;
-
-        // compute new turret setpoint: add camera offset to current turret angle
-        double currentAngle = getTurretAngle();
-        double commandedAngle = currentAngle - tx;
-
-        // clamp to mechanical limits
-        commandedAngle = MathUtil.clamp(commandedAngle, TurretConstants.MIN_ANGLE_DEGREES, TurretConstants.MAX_ANGLE_DEGREES);
-
-        setTurretAngle(commandedAngle);
+    public void simulationPeriodic()
+    {
+        turret.simIterate();
     }
 
-    @Override
-    public void periodic() {
-        turret_kP = SmartDashboard.getNumber("Set turret_kP", 2.4);
-        turret_kI = SmartDashboard.getNumber("Set turret_kI", 0);
-        turret_kP = SmartDashboard.getNumber("Set turret_kD", 0.1);
+    public Command turretCmd(double dutycycle)
+    {
+        return turret.set(dutycycle);
+    }
 
-        m_motor.assignPIDValues(turret_kP, turret_kI, turret_kD); // remove in prod
+    public Command setAngle(Angle angle)
+    {
+        return turret.setAngle(angle);
+    }
 
-        SmartDashboard.putNumber("Real turret angle", getTurretAngle());
-
-        if(Telemetry.isHubActive()) {
-            autoAimWithLimelight();
-        }
-
-        SmartDashboard.putBoolean("On target", onTarget);
+    public void setAngleSetpoint(Angle measure)
+    {
+        turret.setMechanismPositionSetpoint(measure);
     }
 }

@@ -33,8 +33,8 @@ public class FireCommand extends Command {
         m_conveyer.stop();
     }
 
-    @Override
-    public boolean isFinished() {
-        return true;
-    }
+    // @Override
+    // public boolean isFinished() {
+    //     return true;
+    // }
 }

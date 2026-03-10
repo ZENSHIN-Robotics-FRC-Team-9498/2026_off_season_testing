@@ -9,6 +9,7 @@ public class RetractIntakeCommand extends Command {
 
     public RetractIntakeCommand(IntakeSubsystem intake) {
         this.m_intake = intake;
+        addRequirements(m_intake);
     }
 
     @Override
