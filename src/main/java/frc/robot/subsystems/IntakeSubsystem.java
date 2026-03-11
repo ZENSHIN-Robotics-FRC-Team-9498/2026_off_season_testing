@@ -1,31 +1,72 @@
 package frc.robot.subsystems;
 
 
+import static edu.wpi.first.units.Units.Amps;
+import static edu.wpi.first.units.Units.Degrees;
+import static edu.wpi.first.units.Units.DegreesPerSecond;
+import static edu.wpi.first.units.Units.DegreesPerSecondPerSecond;
+import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.Pounds;
+import static edu.wpi.first.units.Units.Seconds;
+
+import com.revrobotics.spark.SparkMax;
+
+import edu.wpi.first.math.controller.ArmFeedforward;
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.constants.Constants.IntakeConstants;
 import frc.robot.utils.SparkMAXContainer;
+import yams.gearing.MechanismGearing;
+import yams.mechanisms.config.ArmConfig;
+import yams.mechanisms.positional.Arm;
+import yams.motorcontrollers.SmartMotorController;
+import yams.motorcontrollers.SmartMotorControllerConfig;
+import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
+import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
+import yams.motorcontrollers.SmartMotorControllerConfig.TelemetryVerbosity;
+import yams.motorcontrollers.local.SparkWrapper;
 
 public class IntakeSubsystem extends SubsystemBase {
     private final SparkMAXContainer m_intakeRoller = new SparkMAXContainer(IntakeConstants.INTAKE_ROLLER_CAN_ID);
-    private final SparkMAXContainer m_actuatorMotor = new SparkMAXContainer(IntakeConstants.INTAKE_ACTUATOR_CAN_ID);
+    private final SparkMax m_actuatorMotor = new SparkMax(IntakeConstants.INTAKE_ACTUATOR_CAN_ID, SparkMax.MotorType.kBrushless);
 
-    private double actuator_kP;
-    private double actuator_kI;
-    private double actuator_kD;
+    private double actuator_kP = 0.1;
+    private double actuator_kI = 0;
+    private double actuator_kD = 0;
 
-    private double actuatorAngle;
+    private double actuatorAngle = 0;
     
     private double slurpPercent;
     private double spitPercent;
+  
+    private final SmartMotorControllerConfig motorConfig = new SmartMotorControllerConfig(this)
+        .withClosedLoopController(actuator_kP, actuator_kI, actuator_kD, DegreesPerSecond.of(180), DegreesPerSecondPerSecond.of(90))
+        .withSoftLimit(Degrees.of(0), Degrees.of(90))
+        //TODO: figure out actual gearing and fill in the below
+        .withGearing(new MechanismGearing(3))
+        .withIdleMode(MotorMode.BRAKE)
+        .withTelemetry("ArmMotor", TelemetryVerbosity.HIGH)
+        .withStatorCurrentLimit(Amps.of(40))
+        .withMotorInverted(false)
+        .withClosedLoopRampRate(Seconds.of(0.25))
+        .withFeedforward(new ArmFeedforward(0, 0, 0, 0))
+        .withControlMode(ControlMode.CLOSED_LOOP);
+    private final SmartMotorController motor = new SparkWrapper(m_actuatorMotor, DCMotor.getNEO(1), motorConfig);
+    
+    private ArmConfig m_config = new ArmConfig(motor)
+        .withLength(Meters.of(0.135))
+        .withHardLimit(Degrees.of(-100), Degrees.of(200))
+        .withTelemetry("ArmExample", TelemetryVerbosity.HIGH)
+        .withMass(Pounds.of(1))
+        .withStartingPosition(Degrees.of(0));
+
+    private final Arm arm = new Arm(m_config);
 
 
     public IntakeSubsystem() {
         m_intakeRoller.setBreakMode(false);
-        m_actuatorMotor.setBreakMode(true);
-
-        m_actuatorMotor.assignPIDValues(actuator_kP, actuator_kI, actuator_kD);
-        m_actuatorMotor.motor.getEncoder().setPosition(0);
 
         SmartDashboard.putNumber("Set intake actuator_kP", 0.1);
         SmartDashboard.putNumber("Set intake actuator_kI", 0);
@@ -56,12 +97,11 @@ public class IntakeSubsystem extends SubsystemBase {
     }
 
     public void extendIntake() {
-        // m_actuatorMotor.goToPostion(IntakeConstants.EXTENDED_ANGLE_DEGREES / 360);
-        m_actuatorMotor.goToPostion(actuatorAngle / 360);
+        arm.setAngle(Degrees.of(actuatorAngle));
     }
 
     public void retractIntake() {
-        m_actuatorMotor.goToPostion(0);
+        arm.setAngle(Degrees.of(0));
     }
 
     public void stop() {
@@ -70,14 +110,14 @@ public class IntakeSubsystem extends SubsystemBase {
 
     @Override
     public void periodic() {
-        SmartDashboard.putNumber("Real intake actuator degrees", m_actuatorMotor.getPosition() * 360);
+        arm.updateTelemetry();
 
-        actuator_kP = SmartDashboard.getNumber("Set intake actuator_kP", 0.1);
-        actuator_kI = SmartDashboard.getNumber("Set intake actuator_kI", 0);
-        actuator_kP = SmartDashboard.getNumber("Set intake actuator_kD", 0);
-
-        m_actuatorMotor.assignPIDValues(actuator_kP, actuator_kI, actuator_kD); // remove in prod
-
+        if(DriverStation.isFMSAttached()) {
+            return;
+        }
+        
+        SmartDashboard.putNumber("Real intake actuator degrees", arm.getAngle().in(Degrees));
+        
         actuatorAngle = SmartDashboard.getNumber("Set intake actuator degrees", 0);
 
         slurpPercent = SmartDashboard.getNumber("Set slurp roller percent", 0);

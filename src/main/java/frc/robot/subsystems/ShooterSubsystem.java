@@ -2,6 +2,7 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.Kilograms;
+import static edu.wpi.first.units.Units.Amps;
 
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
@@ -38,7 +39,7 @@ public class ShooterSubsystem extends SubsystemBase
         .withGearing(new MechanismGearing(1))
         .withIdleMode(MotorMode.COAST)
         .withTelemetry("ShooterMotor", TelemetryVerbosity.HIGH)
-        //.withStatorCurrentLimit(Amps.of(40))
+        .withStatorCurrentLimit(Amps.of(40))
         .withMotorInverted(false)
         .withFeedforward(new SimpleMotorFeedforward(0, 0, 0))
         .withFollowers(Pair.of(flywheelMotor2, flywheelMotor2Inverted))

@@ -6,7 +6,6 @@ package frc.robot;
 
 
 import edu.wpi.first.wpilibj.PS5Controller;
-import frc.robot.commands.FireCommand;
 import frc.robot.commands.IntakeCommand;
 import frc.robot.commands.JumpBumpCommand;
 import frc.robot.commands.OutputCommand;
@@ -109,7 +108,7 @@ public class RobotContainer {
 
     
 
-    // m_maintenanceController.L1().whileTrue(null);
+    m_maintenanceController.L1().whileTrue(fire);
   }
 
   /**

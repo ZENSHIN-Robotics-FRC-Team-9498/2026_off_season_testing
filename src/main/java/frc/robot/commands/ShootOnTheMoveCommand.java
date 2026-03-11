@@ -76,6 +76,8 @@ public class ShootOnTheMoveCommand extends Command
     {
         // TODO: put with real numbers
         // These should be found on your robot
+        // key for Hood and Flywheel is the same
+        
         launchHoodAngleMap.put(1.34, Rotation2d.fromDegrees(19.0));
         launchHoodAngleMap.put(1.78, Rotation2d.fromDegrees(19.0));
         launchHoodAngleMap.put(2.17, Rotation2d.fromDegrees(24.0));

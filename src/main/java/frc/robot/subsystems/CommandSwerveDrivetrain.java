@@ -1,6 +1,7 @@
 package frc.robot.subsystems;
 
 
+
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -27,8 +28,9 @@ import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
-import frc.robot.constants.Constants.LimelightConstants;
+import frc.robot.LimelightHelpers;
 import frc.robot.constants.TunerConstants;
+import frc.robot.constants.Constants.LimelightConstants;
 import frc.robot.constants.TunerConstants.TunerSwerveDrivetrain;
 
 /**
@@ -50,7 +52,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     /* Keep track if we've ever applied the operator perspective before or not */
     private boolean m_hasAppliedOperatorPerspective = false;
 
-    private final VisionSubsystem vision = new VisionSubsystem(LimelightConstants.DRIVE_LIMELIGHT_NAME);
 
     /**
      * Constructs a CTRE SwerveDrivetrain using the specified constants.
@@ -62,10 +63,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      * @param drivetrainConstants   Drivetrain-wide constants for the swerve drive
      * @param modules               Constants for each specific module
      */
-    public CommandSwerveDrivetrain(
-        SwerveDrivetrainConstants drivetrainConstants,
-        SwerveModuleConstants<?, ?, ?>... modules
-    ) {
+    public CommandSwerveDrivetrain(SwerveDrivetrainConstants drivetrainConstants, SwerveModuleConstants<?, ?, ?>... modules) {
         super(drivetrainConstants, modules);
         if (Utils.isSimulation()) {
             startSimThread();
@@ -141,6 +139,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         return run(() -> this.setControl(request.get()));
     }
 
+    private boolean doRejectUpdate = false;
+
     @Override
     public void periodic() {
         /*
@@ -162,15 +162,29 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         }
 
         SmartDashboard.putData("Field", m_field);
-        m_field.setRobotPose(this.getState().Pose);
+        m_field.setRobotPose(getPose());
 
-        vision.getEstimatedPose().ifPresent(visionPose -> {
-            this.addVisionMeasurement(
-                    visionPose,
-                    vision.getLastPoseTimestamp(),
-                    LimelightConstants.VISION_STD_DEVS
-            );
-        });
+        LimelightHelpers.SetRobotOrientation("limelight", getPose().getRotation().getDegrees(), 0, 0, 0, 0, 0);
+        LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight");
+      
+        if(Math.abs(getPigeon2().getAngularVelocityZWorld().getValueAsDouble()) > 360)
+        {
+            doRejectUpdate = true;
+        }
+        if(mt2.tagCount == 0)
+        {
+            doRejectUpdate = true;
+        }
+
+        if(!doRejectUpdate)
+        {
+            addVisionMeasurement(
+                mt2.pose,
+                mt2.timestampSeconds,
+                LimelightConstants.VISION_STD_DEVS);
+        }
+
+        doRejectUpdate = false;        
     }
 
     private final Field2d m_field = new Field2d();
@@ -235,6 +249,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         return super.samplePoseAt(Utils.fpgaToCurrentTime(timestampSeconds));
     }
 
+    public Pose2d getPose() {
+        return this.getState().Pose;
+    }
+
     public void resetPose(Pose2d pose) {
         super.resetPose(pose);
     }
@@ -246,11 +264,11 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     }
 
     public ChassisSpeeds getFieldRelativeSpeeds() {
-    return ChassisSpeeds.fromRobotRelativeSpeeds(
-        this.getState().Speeds,
-        this.getState().Pose.getRotation()
-    );
-}
+        return ChassisSpeeds.fromRobotRelativeSpeeds(
+            this.getState().Speeds,
+            this.getState().Pose.getRotation()
+        );
+    }
 
     private final SwerveRequest.FieldCentric m_driveRequest = new SwerveRequest.FieldCentric();
 

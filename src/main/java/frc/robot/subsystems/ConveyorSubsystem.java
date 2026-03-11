@@ -1,5 +1,6 @@
 package frc.robot.subsystems;
 
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.constants.Constants.ManipulatorConstants;
@@ -37,6 +38,10 @@ public class ConveyorSubsystem extends SubsystemBase {
 
     @Override
     public void periodic() {
+        if(DriverStation.isFMSAttached()) {
+            return;
+        }
+        
         inPercent = SmartDashboard.getNumber("Set conveyer in percent", 0);
         outPercent = SmartDashboard.getNumber("Set conveyer out percent", 0);
     }

@@ -51,7 +51,7 @@ public class TurretSubsystem extends SubsystemBase
         .withFeedforward(new ArmFeedforward(0, 0, 0, 0))
         .withControlMode(ControlMode.CLOSED_LOOP);
 
-    private final SmartMotorController motor = new TalonFXWrapper(turretMotor, DCMotor.getNEO(1), motorConfig);
+    private final SmartMotorController motor = new TalonFXWrapper(turretMotor, DCMotor.getKrakenX60(1), motorConfig);
 
     private final MechanismPositionConfig robotToMechanism = new MechanismPositionConfig()
         .withMaxRobotHeight(Meters.of(1.5))
@@ -65,6 +65,7 @@ public class TurretSubsystem extends SubsystemBase
 
     private final PivotConfig m_config = new PivotConfig(motor)
         .withHardLimit(Degrees.of(-100), Degrees.of(200))
+        .withSoftLimits(Degrees.of(-10), Degrees.of(10))
         .withTelemetry("Turret", TelemetryVerbosity.HIGH)
         .withStartingPosition(Degrees.of(0))
         .withMechanismPositionConfig(robotToMechanism);

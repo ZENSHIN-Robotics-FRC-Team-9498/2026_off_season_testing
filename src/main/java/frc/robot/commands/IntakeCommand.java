@@ -18,14 +18,10 @@ public class IntakeCommand extends Command {
 
     @Override
     public void initialize() {
-        m_intake.extendIntake();
-        m_intake.runIntake(true);
-        m_conveyor.runConveyor();
     }
 
     @Override
     public void execute() {
-        // remove in prod
         m_intake.extendIntake();
         m_intake.runIntake(true);
         m_conveyor.runConveyor();

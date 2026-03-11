@@ -53,7 +53,7 @@ public class Robot extends TimedRobot {
   }
 
   @Override
-  public void disabledPeriodic() {}
+  public void disabledPeriodic() {m_robotContainer.stopAll();}
 
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */
   @Override
@@ -83,6 +83,9 @@ public class Robot extends TimedRobot {
     // teleop starts running. If you want the autonomous to
     // continue until interrupted by another command, remove
     // this line or comment it out.
+
+    m_robotContainer.stopAll();
+    
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }

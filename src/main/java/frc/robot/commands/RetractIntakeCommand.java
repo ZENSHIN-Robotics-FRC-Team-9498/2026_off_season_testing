@@ -14,12 +14,10 @@ public class RetractIntakeCommand extends Command {
 
     @Override
     public void initialize() {
-        m_intake.retractIntake();
     }
 
     @Override
     public void execute() {
-        // remvoe in prod
         m_intake.retractIntake();
     }
 

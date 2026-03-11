@@ -13,7 +13,7 @@ public class ClimberSubsystem extends SubsystemBase {
         
     }
 
-    public void climb() {
+    public void climbToAngle(double angle) {
 
     }
 
