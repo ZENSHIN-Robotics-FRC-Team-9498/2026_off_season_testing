@@ -2,7 +2,8 @@
 # If you remove items from this file, intellisense might break.
 
 # Auto trajectories
-
+autos/
+paths/
 
 ### C++ ###
 # Prerequisites

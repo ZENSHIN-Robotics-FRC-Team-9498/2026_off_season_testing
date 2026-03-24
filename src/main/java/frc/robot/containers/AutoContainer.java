@@ -18,8 +18,11 @@ public class AutoContainer {
     private SendableChooser<Command> autoChooser;
     // private final CommandSwerveDrivetrain drivetrain;
 
+    @SuppressWarnings("unused")
     private final TurretSubsystem m_turret;
+    @SuppressWarnings("unused")
     private final ShooterSubsystem m_shooter;
+    @SuppressWarnings("unused")
     private final FeederSubsystem m_feeder;
     private final ConveyorSubsystem m_conveyor;
     private final IntakeSubsystem m_intake;

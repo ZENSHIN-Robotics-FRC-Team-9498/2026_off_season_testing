@@ -15,6 +15,8 @@ import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.Vector;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -23,6 +25,7 @@ import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -30,7 +33,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.robot.LimelightHelpers;
 import frc.robot.constants.TunerConstants;
-import frc.robot.constants.Constants.LimelightConstants;
 import frc.robot.constants.TunerConstants.TunerSwerveDrivetrain;
 
 /**
@@ -41,6 +43,7 @@ import frc.robot.constants.TunerConstants.TunerSwerveDrivetrain;
  * https://v6.docs.ctr-electronics.com/en/stable/docs/tuner/tuner-swerve/index.html
  */
 public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Subsystem {
+
     private static final double kSimLoopPeriod = 0.004; // 4 ms
     private Notifier m_simNotifier = null;
     private double m_lastSimTime;
@@ -139,7 +142,20 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         return run(() -> this.setControl(request.get()));
     }
 
-    private boolean doRejectUpdate = false;
+    public void updateVisionMeasurements() {
+        // --- LIMELIGHT SECTION (MegaTag2) ---
+        // Update LL with current gyro/rotation for MegaTag2 accuracy
+        LimelightHelpers.SetRobotOrientation("limelight", 
+            this.getState().Pose.getRotation().getDegrees(), 0, 0, 0, 0, 0);
+        
+        var llResult = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight");
+        
+        if (llResult.tagCount > 0) {
+            // Trust multi-tag (0.3m error) more than single tag (0.8m error)
+            Vector<N3> stdDevs = (llResult.tagCount > 1) ? VecBuilder.fill(0.3, 0.3, 0.3) : VecBuilder.fill(0.8, 0.8, 0.8);
+            this.addVisionMeasurement(llResult.pose, llResult.timestampSeconds, stdDevs);
+        }
+    }
 
     @Override
     public void periodic() {
@@ -164,27 +180,11 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         SmartDashboard.putData("Field", m_field);
         m_field.setRobotPose(getPose());
 
-        LimelightHelpers.SetRobotOrientation("limelight", getPose().getRotation().getDegrees(), 0, 0, 0, 0, 0);
-        LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight");
-      
-        if(Math.abs(getPigeon2().getAngularVelocityZWorld().getValueAsDouble()) > 360)
-        {
-            doRejectUpdate = true;
-        }
-        if(mt2.tagCount == 0)
-        {
-            doRejectUpdate = true;
+        if(RobotBase.isSimulation()) {
+            return;
         }
 
-        if(!doRejectUpdate)
-        {
-            addVisionMeasurement(
-                mt2.pose,
-                mt2.timestampSeconds,
-                LimelightConstants.VISION_STD_DEVS);
-        }
-
-        doRejectUpdate = false;        
+        updateVisionMeasurements();
     }
 
     private final Field2d m_field = new Field2d();

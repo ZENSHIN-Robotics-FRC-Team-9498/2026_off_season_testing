@@ -340,6 +340,7 @@ public class FieldConstants
     ANDYMARK("andymark"),
     WELDED("welded");
 
+    @SuppressWarnings("unused")
     private final String jsonFolder;
 
     FieldType(String s)

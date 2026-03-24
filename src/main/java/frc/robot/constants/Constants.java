@@ -6,6 +6,9 @@ package frc.robot.constants;
 
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
@@ -77,6 +80,8 @@ public final class Constants {
   public static final class ClimberConstants {
     public static final int LEFT_MOTOR_CAN_ID = 34;
     public static final int RIGHT_MOTOR_CAN_ID = 35;
+
+    public static final boolean invertLeftMotor = false;
   }
 
   public static final class ShooterConstants {
@@ -88,22 +93,26 @@ public final class Constants {
     public static final double FLYWHEEL_MASS_KG = 1;
   }
 
-  public static final class LimelightConstants {
-    public static final String TURRET_LIMELIGHT_NAME = "TURRET_EYES";
-    public static final String DRIVE_LIMELIGHT_NAME = "DRIVE_EYES";
+  public static final class VisionConstants {
+      public static final class LimelightConstants {
+      public static final String TURRET_LIMELIGHT_NAME = "TURRET_EYES";
+      public static final String DRIVE_LIMELIGHT_NAME = "DRIVE_EYES";
 
-    public static final double MOUNT_ANGLE_DEG = 0.0;
-    public static final double MOUNT_HEIGHT_METERS = 0.43;
+      public static final double MOUNT_ANGLE_DEG = 0.0;
+      public static final double MOUNT_HEIGHT_METERS = 0.43;
 
-    public static final int PIPELINE_FUEL = 0;
-    public static final int PIPELINE_APRILTAG = 1;
+      public static final int PIPELINE_FUEL = 0;
+      public static final int PIPELINE_APRILTAG = 1;
 
-    public static final Matrix<N3, N1> VISION_STD_DEVS =
-        VecBuilder.fill(
-                0.7,                // x meters
-                0.7,                // y meters
-                Math.toRadians(10)  // theta radians
-        );
+      public static final Matrix<N3, N1> VISION_STD_DEVS =
+          VecBuilder.fill(
+                  0.7,                // x meters
+                  0.7,                // y meters
+                  Math.toRadians(10)  // theta radians
+          );
+    }
+
+    public static final Transform3d photonPose = new Transform3d(new Translation3d(0, 0, 0), new Rotation3d(0, 0, 0)); // TODO: set to your camera's actual position on the robot
   }
 
   public static final class AprilTagConstants {

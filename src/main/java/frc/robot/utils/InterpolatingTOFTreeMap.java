@@ -14,7 +14,9 @@ public class InterpolatingTOFTreeMap
 {
 
   public Time latencyCompensation = Milliseconds.of(150);
+  @SuppressWarnings("unused")
   private Distance m_flywheelCircumference;
+  @SuppressWarnings("unused")
   private List<LinearVelocityVector> m_measurements;
   private InterpolatingDoubleTreeMap m_map = new InterpolatingDoubleTreeMap();
 
@@ -36,6 +38,7 @@ public class InterpolatingTOFTreeMap
 
   public LinearVelocityVector get(LinearVelocityVector input)
   {
+    @SuppressWarnings("unused")
     var fieldOrientChassisSpeed = input.velocity;
     // 1. Latency compensation
     var estimatedPose = input.estimatePose(latencyCompensation);

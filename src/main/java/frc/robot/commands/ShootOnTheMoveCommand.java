@@ -42,6 +42,7 @@ import java.util.function.Supplier;
 public class ShootOnTheMoveCommand extends Command
 {
 
+    @SuppressWarnings("unused")
     private final double loopPeriodSecs = Milliseconds.of(20).in(Seconds);
     // Outputs
     private Rotation2d lastTurretAngle;
@@ -56,6 +57,7 @@ public class ShootOnTheMoveCommand extends Command
     private FeederSubsystem m_feeder;
     private ConveyorSubsystem m_conveyor;
     private CommandSwerveDrivetrain m_swerveDrive;
+    @SuppressWarnings("unused")
     private CommandPS5Controller m_controller;
 
     private Supplier<ChassisSpeeds> _fieldRelativeVelocity;

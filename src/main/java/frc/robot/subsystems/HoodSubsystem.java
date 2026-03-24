@@ -33,6 +33,7 @@ public class HoodSubsystem extends SubsystemBase
 {
 
   private final SparkMax hoodMotor= new SparkMax(ShooterConstants.ACTUATOR_CAN_ID, MotorType.kBrushless);
+
   private final SmartMotorControllerConfig motorConfig = new SmartMotorControllerConfig(this)
       .withClosedLoopController(4, 0, 0, DegreesPerSecond.of(180), DegreesPerSecondPerSecond.of(90))
       .withSoftLimit(Degrees.of(0), Degrees.of(45))
@@ -49,51 +50,56 @@ public class HoodSubsystem extends SubsystemBase
   private final SmartMotorController motor = new SparkWrapper(hoodMotor, DCMotor.getNEO(1), motorConfig);
 
   private final MechanismPositionConfig robotToMechanism = new MechanismPositionConfig()
-        .withMaxRobotHeight(Meters.of(1.5))
-        .withMaxRobotLength(Meters.of(0.75))
-        .withRelativePosition(new Translation3d(Meters.of(0), Meters.of(0), Meters.of(0)));
-        // TODO: fill in the above with actual measurements,
-        // x = forward/back offset
-        // y = left/right offset
-        // z = height above robot origin
+      .withMaxRobotHeight(Meters.of(1.5))
+      .withMaxRobotLength(Meters.of(0.75))
+      .withRelativePosition(new Translation3d(Meters.of(0), Meters.of(0), Meters.of(0)));
+      // TODO: fill in the above with actual measurements,
+      // x = forward/back offset
+      // y = left/right offset
+      // z = height above robot origin
 
   private final PivotConfig m_config = new PivotConfig(motor)
+      .withMOI(1) // affects sim only
       .withHardLimit(Degrees.of(0), Degrees.of(45))
       .withTelemetry("Hood", TelemetryVerbosity.HIGH)
       .withStartingPosition(Degrees.of(0))
       .withMechanismPositionConfig(robotToMechanism);
+
   private final Pivot hood = new Pivot(m_config);
 
-  public HoodSubsystem()
-  {
-    // TODO: Set the default command, if any, for this subsystem by calling setDefaultCommand(command)
-    //       in the constructor or in the robot coordination class, such as RobotContainer.
-    //       Also, you can call addChild(name, sendableChild) to associate sendables with the subsystem
-    //       such as SpeedControllers, Encoders, DigitalInputs, etc.
-  }
 
-  public void periodic()
-  {
-    hood.updateTelemetry();
-  }
+    public HoodSubsystem()
+    {
+        // TODO: Set the default command, if any, for this subsystem by calling setDefaultCommand(command)
+        //       in the constructor or in the robot coordination class, such as RobotContainer.
+        //       Also, you can call addChild(name, sendableChild) to associate sendables with the subsystem
+        //       such as SpeedControllers, Encoders, DigitalInputs, etc.
+    }
 
-  public void simulationPeriodic()
-  {
-    hood.simIterate();
-  }
+    @Override
+    public void periodic()
+    {
+        hood.updateTelemetry();
+    }
+    
+    @Override
+    public void simulationPeriodic()
+    {
+        hood.simIterate();
+    }
 
-  public Command hoodCmd(double dutycycle)
-  {
-    return hood.set(dutycycle);
-  }
+    public Command hoodCmd(double dutycycle)
+    {
+        return hood.set(dutycycle);
+    }
 
-  public Command setAngle(Angle angle)
-  {
-    return hood.setAngle(angle);
-  }
+    public Command setAngle(Angle angle)
+    {
+        return hood.setAngle(angle);
+    }
 
-  public void setAngleSetpoint(Angle angle)
-  {
-    hood.setMechanismPositionSetpoint(angle);
-  }
+    public void setAngleSetpoint(Angle angle)
+    {
+        hood.setMechanismPositionSetpoint(angle);
+    }
 }

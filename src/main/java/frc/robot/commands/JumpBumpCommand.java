@@ -39,17 +39,12 @@ public class JumpBumpCommand extends Command {
 
         double targetAngle = Math.round(currentRotationRadians / step) * step;
 
-        double rotationSpeed = m_rotationController.calculate(
-            currentRotationRadians,
-            targetAngle
-        );
+        double rotationSpeed = m_rotationController.calculate(currentRotationRadians, targetAngle);
 
         m_drivetrain.drive(
             -MathUtil.applyDeadband(m_controller.getLeftX(), OIConstants.kDriveDeadband),
             -MathUtil.applyDeadband(m_controller.getLeftY(), OIConstants.kDriveDeadband), 
-            rotationSpeed,
-            true
-        );
+            rotationSpeed, true);
     }
 
     @Override

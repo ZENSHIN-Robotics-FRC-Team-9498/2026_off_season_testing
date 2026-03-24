@@ -35,13 +35,13 @@ public class ShooterSubsystem extends SubsystemBase
     private final boolean flywheelMotor2Inverted = true;
 
     private final SmartMotorControllerConfig motorConfig = new SmartMotorControllerConfig(this)
-        .withClosedLoopController(1, 0, 0)
+        .withClosedLoopController(0.90, 0, 0)
         .withGearing(new MechanismGearing(1))
         .withIdleMode(MotorMode.COAST)
         .withTelemetry("ShooterMotor", TelemetryVerbosity.HIGH)
         .withStatorCurrentLimit(Amps.of(40))
         .withMotorInverted(false)
-        .withFeedforward(new SimpleMotorFeedforward(0, 0, 0))
+        .withFeedforward(new SimpleMotorFeedforward(0.43, 0.37, 0))
         .withFollowers(Pair.of(flywheelMotor2, flywheelMotor2Inverted))
         .withControlMode(ControlMode.CLOSED_LOOP);
     private final SmartMotorController motor = new SparkWrapper(flywheelMotor1, DCMotor.getNEO(1), motorConfig);
@@ -112,10 +112,14 @@ public class ShooterSubsystem extends SubsystemBase
         shooter.setMechanismVelocitySetpoint(speed);
     }
 
-    public void setDutyCycleSetpoint(double dutyCycle)
+    /**
+     * Set speed from -1 to 1
+     * @param speed Duty cycle to set the shooter to, from -1 to 1
+     */
+    public void setSpeed(double speed)
     {
-        shooter.setDutyCycleSetpoint(dutyCycle);
+        shooter.setDutyCycleSetpoint(speed);
     }
 
-    public void stop() {setDutyCycleSetpoint(0);}
+    public void stop() {setSpeed(0);}
 }

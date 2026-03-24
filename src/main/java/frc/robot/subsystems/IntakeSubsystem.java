@@ -43,7 +43,7 @@ public class IntakeSubsystem extends SubsystemBase {
   
     private final SmartMotorControllerConfig motorConfig = new SmartMotorControllerConfig(this)
         .withClosedLoopController(actuator_kP, actuator_kI, actuator_kD, DegreesPerSecond.of(180), DegreesPerSecondPerSecond.of(90))
-        .withSoftLimit(Degrees.of(0), Degrees.of(90))
+        .withSoftLimit(Degrees.of(0), Degrees.of(90))   // this is real limit
         //TODO: figure out actual gearing and fill in the below
         .withGearing(new MechanismGearing(3))
         .withIdleMode(MotorMode.BRAKE)
@@ -53,12 +53,13 @@ public class IntakeSubsystem extends SubsystemBase {
         .withClosedLoopRampRate(Seconds.of(0.25))
         .withFeedforward(new ArmFeedforward(0, 0, 0, 0))
         .withControlMode(ControlMode.CLOSED_LOOP);
+    
     private final SmartMotorController motor = new SparkWrapper(m_actuatorMotor, DCMotor.getNEO(1), motorConfig);
     
     private ArmConfig m_config = new ArmConfig(motor)
         .withLength(Meters.of(0.135))
-        .withHardLimit(Degrees.of(-100), Degrees.of(200))
-        .withTelemetry("ArmExample", TelemetryVerbosity.HIGH)
+        .withHardLimit(Degrees.of(-100), Degrees.of(200)) // affects sim only
+        .withTelemetry("IntakeArm", TelemetryVerbosity.HIGH)
         .withMass(Pounds.of(1))
         .withStartingPosition(Degrees.of(0));
 
@@ -67,12 +68,6 @@ public class IntakeSubsystem extends SubsystemBase {
 
     public IntakeSubsystem() {
         m_intakeRoller.setBreakMode(false);
-
-        SmartDashboard.putNumber("Set intake actuator_kP", 0.1);
-        SmartDashboard.putNumber("Set intake actuator_kI", 0);
-        SmartDashboard.putNumber("Set intake actuator_kD", 0);
-        
-        SmartDashboard.putNumber("Set intake actuator degrees", 0);
 
         SmartDashboard.putNumber("Set slurp roller percent", 0);
         SmartDashboard.putNumber("Set spit roller percent", 0);

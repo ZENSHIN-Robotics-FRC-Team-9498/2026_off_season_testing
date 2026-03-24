@@ -40,7 +40,7 @@ public class TurretSubsystem extends SubsystemBase
     private final TalonFX turretMotor = new TalonFX(TurretConstants.TURRET_CAN_ID);//, MotorType.kBrushless);
     private final SmartMotorControllerConfig motorConfig = new SmartMotorControllerConfig(this)
         .withClosedLoopController(4, 0, 0, DegreesPerSecond.of(180), DegreesPerSecondPerSecond.of(90))
-        .withSoftLimit(Degrees.of(-30), Degrees.of(100))
+        .withSoftLimit(Degrees.of(-30), Degrees.of(100))    // this is the real limit
         .withGearing(new MechanismGearing(36))
         .withIdleMode(MotorMode.BRAKE)
         .withTelemetry("TurretMotor", TelemetryVerbosity.HIGH)
@@ -64,8 +64,9 @@ public class TurretSubsystem extends SubsystemBase
         // yaw = turret mounting rotation (usually 0)
 
     private final PivotConfig m_config = new PivotConfig(motor)
-        .withHardLimit(Degrees.of(-100), Degrees.of(200))
+        .withHardLimit(Degrees.of(-100), Degrees.of(200))   // this affect sim only
         .withSoftLimits(Degrees.of(-10), Degrees.of(10))
+        .withMOI(1) // affects sim only
         .withTelemetry("Turret", TelemetryVerbosity.HIGH)
         .withStartingPosition(Degrees.of(0))
         .withMechanismPositionConfig(robotToMechanism);
@@ -113,11 +114,13 @@ public class TurretSubsystem extends SubsystemBase
                                 robotVelocity.omegaRadiansPerSecond + motor.getMechanismVelocity().in(RadiansPerSecond));
     }
 
+    @Override
     public void periodic()
     {
         turret.updateTelemetry();
     }
 
+    @Override
     public void simulationPeriodic()
     {
         turret.simIterate();
