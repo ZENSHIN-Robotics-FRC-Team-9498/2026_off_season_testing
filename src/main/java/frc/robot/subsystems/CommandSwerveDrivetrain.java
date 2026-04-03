@@ -144,11 +144,12 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     public void updateVisionMeasurements() {
         // --- LIMELIGHT SECTION (MegaTag2) ---
-        // Update LL with current gyro/rotation for MegaTag2 accuracy
-        LimelightHelpers.SetRobotOrientation("limelight", 
+        // dont worry, this works
+        final String limelightName = "limelight";
+        LimelightHelpers.SetRobotOrientation(limelightName,
             this.getState().Pose.getRotation().getDegrees(), 0, 0, 0, 0, 0);
-        
-        var llResult = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight");
+
+        var llResult = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(limelightName);
         
         if (llResult.tagCount > 0) {
             // Trust multi-tag (0.3m error) more than single tag (0.8m error)
@@ -313,6 +314,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                 (speeds, feedforwards) -> this.setControl(
                         autoRequest.withSpeeds(speeds)), // Consumer of ChassisSpeeds (Ignore feedforwards for now
                                                          // unless using Torque control)
+                // TODO: Tune translation / rotation PID (and verify RobotConfig.fromGUISettings()) on the real robot.
                 new PPHolonomicDriveController(
                         new PIDConstants(5.0, 0.0, 0.0), // Translation PID (kP, kI, kD)
                         new PIDConstants(5.0, 0.0, 0.0) // Rotation PID (kP, kI, kD)

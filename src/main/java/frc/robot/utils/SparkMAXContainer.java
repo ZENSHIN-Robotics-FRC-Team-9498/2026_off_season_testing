@@ -25,6 +25,10 @@ public class SparkMAXContainer implements MotorContainer {
   public RelativeEncoder encoder;
   private SparkMaxConfig config;
   public int port;
+  private String pidTuningKey = null;
+  private double lastTunedP = Double.NaN;
+  private double lastTunedI = Double.NaN;
+  private double lastTunedD = Double.NaN;
 
   /**
    * Creates a new SparkMAXContainer with the given id ASSUMES THE MOTOR IS
@@ -91,6 +95,41 @@ public class SparkMAXContainer implements MotorContainer {
   }
 
   /**
+   * Enables live PID tuning via NetworkTables (SmartDashboard).
+   * Write updated values to these keys from AdvantageScope (NT4):
+   * <pre>
+   *   key + "P", key + "I", key + "D"
+   * </pre>
+   * Then call {@link #updatePIDFromDashboard()} periodically (while not on FMS).
+   */
+  public void enablePIDTuning(String key, double defaultP, double defaultI, double defaultD) {
+    pidTuningKey = key;
+    SmartDashboard.putNumber(pidTuningKey + "P", defaultP);
+    SmartDashboard.putNumber(pidTuningKey + "I", defaultI);
+    SmartDashboard.putNumber(pidTuningKey + "D", defaultD);
+    lastTunedP = defaultP;
+    lastTunedI = defaultI;
+    lastTunedD = defaultD;
+    assignPIDValues(defaultP, defaultI, defaultD);
+  }
+
+  /** If tuning is enabled, reads P/I/D from SmartDashboard and applies if changed. */
+  public void updatePIDFromDashboard() {
+    if (pidTuningKey == null) {
+      return;
+    }
+    double p = SmartDashboard.getNumber(pidTuningKey + "P", lastTunedP);
+    double i = SmartDashboard.getNumber(pidTuningKey + "I", lastTunedI);
+    double d = SmartDashboard.getNumber(pidTuningKey + "D", lastTunedD);
+    if (p != lastTunedP || i != lastTunedI || d != lastTunedD) {
+      lastTunedP = p;
+      lastTunedI = i;
+      lastTunedD = d;
+      assignPIDValues(p, i, d);
+    }
+  }
+
+  /**
   * @param kS UNITS: Volts
   * @param kV UNITS:Volts per velocity, DESC: Volts per motor RPM by default
   * @param kA UNITS:Volts per velocity/s, DESC: Volts per motor RPM/s by default
@@ -100,13 +139,13 @@ public class SparkMAXContainer implements MotorContainer {
   * @see https://docs.revrobotics.com/revlib/spark/closed-loop/feed-forward-control
   */ 
   public void assignFF(double kS, double kV, double kA, double kG, double kCos, double kCosRatio){
-    config.closedLoop.feedForward.kA(kA).kV(kV).kA(kA).kG(kG).kCos(kCos).kCosRatio(kCosRatio);
+    config.closedLoop.feedForward.kS(kS).kV(kV).kA(kA).kG(kG).kCos(kCos).kCosRatio(kCosRatio);
     motor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
   }
 
   @Override
   public void assignFF(double kS, double kV, double kA, double kG){
-    config.closedLoop.feedForward.kA(kA).kV(kV).kA(kA).kG(kG);
+    config.closedLoop.feedForward.kS(kS).kV(kV).kA(kA).kG(kG);
     motor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
   }
 
@@ -163,7 +202,7 @@ public class SparkMAXContainer implements MotorContainer {
     try {
       var encoderPos = encoder.getPosition();
       motor.getClosedLoopController().setSetpoint(pos, ControlType.kPosition);
-      return encoderPos > pos - deadband || encoderPos < encoderPos + deadband;
+      return encoderPos > (pos - deadband) && encoderPos < (pos + deadband);
     } catch (Exception e) {
       DriverStation.reportError(e.getMessage(), false);
       return true;

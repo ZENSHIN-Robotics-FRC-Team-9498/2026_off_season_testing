@@ -16,10 +16,9 @@ import frc.robot.subsystems.TurretSubsystem;
 
 public class AutoContainer {
     private SendableChooser<Command> autoChooser;
-    // private final CommandSwerveDrivetrain drivetrain;
-
-    @SuppressWarnings("unused")
-    private final TurretSubsystem m_turret;
+    // TODO: Register one NamedCommands.registerCommand(...) per marker name used in PathPlanner autos
+    // (shoot, retract intake, wait, etc.). Only "Slurp" is registered today.
+    // AutoBuilder is configured in CommandSwerveDrivetrain.configurePathPlanner() — no second setup needed here.
     @SuppressWarnings("unused")
     private final ShooterSubsystem m_shooter;
     @SuppressWarnings("unused")
@@ -27,13 +26,9 @@ public class AutoContainer {
     private final ConveyorSubsystem m_conveyor;
     private final IntakeSubsystem m_intake;
 
-    public AutoContainer(CommandSwerveDrivetrain drivetrain, TurretSubsystem turret,
+    public AutoContainer(CommandSwerveDrivetrain drivetrain,
                             ShooterSubsystem shooter, FeederSubsystem feeder,
                             ConveyorSubsystem conveyor, IntakeSubsystem intake) {
-        // this.drivetrain = drivetrain;
-        // this.drivetrain.configureAutoBuilder();
-
-        this.m_turret = turret;
         this.m_shooter = shooter;
         this.m_feeder = feeder;
         this.m_conveyor = conveyor;

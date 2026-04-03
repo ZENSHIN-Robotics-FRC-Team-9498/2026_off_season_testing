@@ -84,6 +84,7 @@ public class Robot extends TimedRobot {
     // continue until interrupted by another command, remove
     // this line or comment it out.
 
+    // TODO: Confirm stopping manipulators (and not swerve/turret) on every teleop start is desired.
     m_robotContainer.stopAll();
     
     if (m_autonomousCommand != null) {

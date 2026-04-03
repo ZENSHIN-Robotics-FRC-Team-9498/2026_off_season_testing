@@ -6,6 +6,7 @@ package frc.robot;
 
 
 import edu.wpi.first.wpilibj.PS5Controller;
+import frc.robot.commands.FireCommand;
 import frc.robot.commands.IntakeCommand;
 import frc.robot.commands.JumpBumpCommand;
 import frc.robot.commands.OutputCommand;
@@ -14,6 +15,7 @@ import frc.robot.commands.ShootOnTheMoveCommand;
 import frc.robot.constants.Constants.OIConstants;
 import frc.robot.containers.DriveBaseContainer;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
+import frc.robot.subsystems.ClimberSubsystem;
 import frc.robot.subsystems.ConveyorSubsystem;
 import frc.robot.subsystems.FeederSubsystem;
 import frc.robot.subsystems.HoodSubsystem;
@@ -21,6 +23,7 @@ import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 
@@ -42,10 +45,11 @@ public class RobotContainer {
 
   private final IntakeSubsystem m_intake = new IntakeSubsystem();
   private final ShooterSubsystem m_shooter = new ShooterSubsystem();
-  private final TurretSubsystem m_turret = new TurretSubsystem();
+  // private final TurretSubsystem m_turret = new TurretSubsystem();
   private final ConveyorSubsystem m_conveyor = new ConveyorSubsystem();
   private final FeederSubsystem m_feeder = new FeederSubsystem();
   private final HoodSubsystem m_hood = new HoodSubsystem();
+  // private final ClimberSubsystem m_climber = new ClimberSubsystem();
 
   // The robot's commands
   private final JumpBumpCommand jumpBump;
@@ -57,7 +61,8 @@ public class RobotContainer {
 
   // private final FireCommand fire = new FireCommand(m_feeder, m_conveyor);
 
-  private final ShootOnTheMoveCommand fire;
+  // private final ShootOnTheMoveCommand fire;
+  private final FireCommand backup_fire;
 
   // Something?
   private final DriveBaseContainer m_DriveBaseContainer; 
@@ -66,9 +71,12 @@ public class RobotContainer {
    * The container for the robot. Contains subsystems, OI devices, and commands.
    */
   public RobotContainer() {
-    m_DriveBaseContainer = new DriveBaseContainer(m_driverController, m_turret, m_shooter, m_feeder, m_conveyor, m_intake);
+    m_DriveBaseContainer = new DriveBaseContainer(m_driverController, m_shooter, m_feeder, m_conveyor, m_intake);
     drivetrain = m_DriveBaseContainer.drivetrain;
-    fire = new ShootOnTheMoveCommand(m_turret, m_shooter, m_hood, m_feeder, m_conveyor, drivetrain, m_driverController);
+
+
+    // fire = new ShootOnTheMoveCommand(m_turret, m_shooter, m_hood, m_feeder, m_conveyor, drivetrain, m_driverController);
+    backup_fire = new FireCommand(m_feeder, m_conveyor, m_shooter);
 
     jumpBump = new JumpBumpCommand(drivetrain, m_driverController);
 
@@ -86,8 +94,7 @@ public class RobotContainer {
    * {@link JoystickButton}.
    */
   private void configureButtonBindings() {
-    // Probably change (all of) this
-
+    // TODO: Finalize driver / operator / maintenance button map for competition.
 
     /*
      * Driver controls driving, intake, aiming, reving, and shooting
@@ -99,16 +106,19 @@ public class RobotContainer {
     m_driverController.L1().whileTrue(spit);
     m_driverController.L2().whileTrue(slurp);
 
-    m_driverController.R3().whileTrue(jumpBump);
+    // m_driverController.R3().whileTrue(jumpBump);
 
     // m_driverController.L2().whileTrue(revWheel);
-    m_driverController.R2().whileTrue(fire);
+    m_driverController.R2().whileTrue(backup_fire);
 
-    m_operatorController.cross().whileTrue(back_in_shell);
+    m_driverController.circle().whileTrue(back_in_shell);
 
+    // Setpoint moves: one press goes to extend/retract position; closed-loop holds.
+    // m_maintenanceController.triangle().onTrue(Commands.runOnce(m_climber::goToExtend, m_climber));
+    // m_maintenanceController.cross().onTrue(Commands.runOnce(m_climber::goToRetract, m_climber));
     
 
-    m_maintenanceController.L1().whileTrue(fire);
+    // m_maintenanceController.L1().whileTrue(fire);
   }
 
   /**
@@ -120,10 +130,17 @@ public class RobotContainer {
     return this.m_DriveBaseContainer.GetAutonCommand();
   }
 
+  /**
+   * Stops selected subsystems’ outputs. Does <strong>not</strong> stop the swerve drivetrain (default drive
+   * command keeps running), turret, hood, or any motor only commanded via closed-loop setpoints unless those
+   * subsystems expose {@code stop()} here. After this, any scheduled command may immediately send new
+   * setpoints or {@code set()} again — this method does not lock out control.
+   */
   public void stopAll() {
     m_intake.stop();
     m_conveyor.stop();
     m_feeder.stop();
     m_shooter.stop();
+    // m_climber.stop();
   }
 }

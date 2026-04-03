@@ -28,7 +28,7 @@ import edu.wpi.first.math.trajectory.TrapezoidProfile;
 public final class Constants {
   public static final class OIConstants {
     public static final int kDriverControllerPort = 0;
-    public static final double kDriveDeadband = 0.05;
+    public static final double kDriveDeadband = 0.1;
 
     public static final int kOperatorControllerPort = 1;
 
@@ -55,33 +55,67 @@ public final class Constants {
   }
 
   public static final class IntakeConstants {
-    public static final int INTAKE_ACTUATOR_CAN_ID = 30;
+    public static final int INTAKE_ACTUATOR_H_CAN_ID = 21;
+    public static final int INTAKE_ACTUATOR_L_CAN_ID = 30;
     public static final int INTAKE_ROLLER_CAN_ID = 31;
 
     public static final double EXTENDED_ANGLE_DEGREES = 75;
 
+    // Drivetrain: when the intake arm is past this angle (degrees, max of H/L), cap drive speed.
+    public static final double INTAKE_EXTENDED_DRIVE_THRESHOLD_DEGREES = 15.0;
+    /**
+     * Fraction of normal max linear/angular speed when intake is extended (0.0–1.0).
+     * Example: 0.5 means half max speed; 0.75 means 25% slowdown from full.
+     */
+    public static final double DRIVE_SPEED_MULTIPLIER_WHEN_INTAKE_EXTENDED = 0.5;
+
     // Motor speeds from -1 to +1
-    public static final double ROLLER_IN_SPEED = 0.75;
-    public static final double ROLLER_OUT_SPEED = -0.75;
+    public static final double ROLLER_IN_SPEED = 0.8;
+    public static final double ROLLER_OUT_SPEED = -0.8;
   }
 
   public static final class ManipulatorConstants {
-    public static final int FEEDER_CAN_ID = 32;
+    public static final int INDEXER_CAN_ID = 32;
     public static final int CONVEYOR_CAN_ID = 33;
 
     // Motor speeds from -1 to +1
-    public static final double CONVEYOR_IN_SPEED = 0.75;
-    public static final double CONVEYOR_OUT_SPEED = -0.75;
+    public static final double CONVEYOR_IN_SPEED = -0.4;
+    public static final double CONVEYOR_OUT_SPEED = 0.4;
 
-    public static final double FEEDER_IN_SPEED = 0.75;
-    public static final double FEEDER_OUT_SPEED = -0.75;
+    public static final double INDEXER_IN_SPEED = 0.8;
+    public static final double INDEXER_OUT_SPEED = -0.8;
   }
 
   public static final class ClimberConstants {
     public static final int LEFT_MOTOR_CAN_ID = 34;
     public static final int RIGHT_MOTOR_CAN_ID = 35;
 
+    // Hardware package: 2 Kraken X60 motors on the same climber gearbox.
+    public static final int MOTOR_COUNT = 2;
+
+    // Gear stages as motor rotations : climber output rotations.
+    public static final double GEAR_STAGE_1_REDUCTION = 20.0; // gearbox
+    public static final double GEAR_STAGE_2_REDUCTION = 20.0; // chain/sprocket
+    public static final double TOTAL_REDUCTION = GEAR_STAGE_1_REDUCTION * GEAR_STAGE_2_REDUCTION; // 400:1
+
     public static final boolean invertLeftMotor = false;
+    public static final boolean invertRightMotor = true;
+
+    // Flip climber: mechanism position in output rotations (after SensorToMechanismRatio).
+    // Calibrate on the robot — retract is typically the stored pose, extend the deployed pose.
+    public static final double RETRACT_POSITION_ROTATIONS = 0.0;
+    public static final double EXTEND_POSITION_ROTATIONS = 0.25;
+
+    // Position closed-loop defaults (Phoenix 6 Slot0). Tune live via SmartDashboard when not on FMS.
+    public static final double kP = 12.0;
+    public static final double kI = 0.0;
+    public static final double kD = 0.0;
+    public static final double kS = 0.0;
+    public static final double kV = 0.0;
+    public static final double kG = 0.0;
+
+    // Soft current limit for each climber motor.
+    public static final double CURRENT_LIMIT_AMPS = 40.0;
   }
 
   public static final class ShooterConstants {

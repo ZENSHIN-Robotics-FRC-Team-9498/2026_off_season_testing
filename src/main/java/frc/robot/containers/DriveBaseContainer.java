@@ -7,12 +7,14 @@ import java.util.function.DoubleSupplier;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import frc.robot.Telemetry;
 import frc.robot.constants.TunerConstants;
+import frc.robot.constants.Constants.IntakeConstants;
 import frc.robot.constants.Constants.OIConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.ConveyorSubsystem;
@@ -23,8 +25,8 @@ import frc.robot.subsystems.TurretSubsystem;
 
 public class DriveBaseContainer {
     public AutoContainer autoContainer;
-    public static double speedFactor = .2;
-    public static double rotationFactor = .2;
+    public static double speedFactor = .8;
+    public static double rotationFactor = 0.8;
     
     // static {
     //     edu.wpi.first.wpilibj.smartdashboard.SmartDashboard.putNumber("Speed Factor", speedFactor);
@@ -33,6 +35,9 @@ public class DriveBaseContainer {
 
     public static DoubleSupplier MaxSpeed = () -> speedFactor * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
     public static DoubleSupplier MaxAngularRate = () -> RotationsPerSecond.of(rotationFactor).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
+
+    // TODO: If speedFactor/rotationFactor ever change at runtime, rebuild FieldCentric deadbands and Telemetry max speed
+    // (they are fixed using values from construction time below).
 
     /* Setting up bindings for necessary control of the swerve drive platform */
     private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
@@ -49,32 +54,34 @@ public class DriveBaseContainer {
     // private final ShooterSubsystem m_shooter;
     // private final FeederSubsystem m_feeder;
     // private final ConveyorSubsystem m_conveyor;
-    // private final IntakeSubsystem m_intake;
+    private final IntakeSubsystem m_intake;
 
-    public DriveBaseContainer(CommandPS5Controller driverController, TurretSubsystem turret, 
+    public DriveBaseContainer(CommandPS5Controller driverController, 
                             ShooterSubsystem shooter, FeederSubsystem feeder, 
                             ConveyorSubsystem conveyor, IntakeSubsystem intake) {
         joystick = driverController;
+        m_intake = intake;
         configureBindings();
         SmartDashboard.putBoolean("DriveBase Running",true);
 
         SmartDashboard.putString("MESSAGE", "we are at autoSetup");
 
-        // this.m_turret = turret;
-        // this.m_shooter = shooter;
-        // this.m_feeder = feeder;
-        // this.m_conveyor = conveyor;
-        // this.m_intake = intake;
-
-        autoContainer = new AutoContainer(drivetrain, turret, shooter, feeder, conveyor, intake);
+        autoContainer = new AutoContainer(drivetrain, shooter, feeder, conveyor, intake);
     }
 
     public Command driveHider(){
-            return drivetrain.applyRequest(() ->
-                drive.withVelocityX(-joystick.getLeftY() * MaxSpeed.getAsDouble()) // Drive forward with negative Y (forward)
-                    .withVelocityY(-joystick.getLeftX() * MaxSpeed.getAsDouble()) // Drive left with negative X (left)
-                    .withRotationalRate(-joystick.getRightX() * MaxAngularRate.getAsDouble()) // Drive counterclockwise with negative X (left)
-            );
+            return drivetrain.applyRequest(() -> {
+                double slowdown =
+                    m_intake.isExtendedForDriveSlowdown()
+                        ? IntakeConstants.DRIVE_SPEED_MULTIPLIER_WHEN_INTAKE_EXTENDED
+                        : 1.0;
+                double maxLin = MaxSpeed.getAsDouble() * slowdown;
+                double maxRot = MaxAngularRate.getAsDouble() * slowdown;
+                return drive
+                    .withVelocityX(MathUtil.applyDeadband(-joystick.getLeftY(), 0.05) * maxLin)
+                    .withVelocityY(MathUtil.applyDeadband(-joystick.getLeftX(), 0.05) * maxLin)
+                    .withRotationalRate(MathUtil.applyDeadband(-joystick.getRightX(),0.05) * maxRot);
+            });
     }
 
     private void configureBindings() {

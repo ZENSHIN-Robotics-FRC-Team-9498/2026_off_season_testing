@@ -1,7 +1,7 @@
 package frc.robot.commands;
 
 
-import static edu.wpi.first.units.Units.DegreesPerSecond;
+import static edu.wpi.first.units.Units.RPM;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.ConveyorSubsystem;
@@ -26,18 +26,16 @@ public class FireCommand extends Command {
 
     @Override
     public void execute() {
-        // switch direction if needed
-        if(m_shooter.getVelocity().in(DegreesPerSecond) <= 0)
-        {
-            return;
-        }
-        
+        m_shooter.set(0.7);
+        // m_shooter.setVelocitySetpoint(RPM.of(5000));
         m_feeder.feed();
         m_conveyer.runConveyor();
     }
 
     @Override
     public void end(boolean interrupted) {
+        // m_shooter.setVelocitySetpoint(RPM.of(0));
+        m_shooter.stop();
         m_feeder.stop();
         m_conveyer.stop();
     }

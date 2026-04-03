@@ -3,17 +3,18 @@ package frc.robot.subsystems;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.constants.Constants.IntakeConstants;
 import frc.robot.constants.Constants.ManipulatorConstants;
-import frc.robot.utils.SparkMAXContainer;
+import frc.robot.utils.TalonFxContainer;
 
 /**
  * Do not use directly. Access from the shooter instead
  */
 public class ConveyorSubsystem extends SubsystemBase {
-    private final SparkMAXContainer m_feederBelt = new SparkMAXContainer(ManipulatorConstants.CONVEYOR_CAN_ID);
+    private final TalonFxContainer m_feederBelt = new TalonFxContainer(ManipulatorConstants.CONVEYOR_CAN_ID);
 
-    private double inPercent;
-    private double outPercent;
+    private double inPercent = ManipulatorConstants.CONVEYOR_IN_SPEED;
+    private double outPercent = ManipulatorConstants.CONVEYOR_OUT_SPEED;
 
     public ConveyorSubsystem() {
         m_feederBelt.setBreakMode(false);

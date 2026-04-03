@@ -10,11 +10,12 @@ import static edu.wpi.first.units.Units.Fahrenheit;
 import static edu.wpi.first.units.Units.RPM;
 
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
+import com.ctre.phoenix6.configs.MotorOutputConfigs;
+import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
-import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 import com.ctre.phoenix6.controls.Follower;
@@ -25,6 +26,10 @@ import com.ctre.phoenix6.controls.VelocityVoltage;
 public class TalonFxContainer implements MotorContainer{
     public TalonFX motor;
     public TalonFXConfiguration configurator;
+    private String pidTuningKey = null;
+    private double lastTunedP = Double.NaN;
+    private double lastTunedI = Double.NaN;
+    private double lastTunedD = Double.NaN;
     
     /**
      * Creates a new TalonFxContainer
@@ -54,6 +59,26 @@ public class TalonFxContainer implements MotorContainer{
         this.motor.getConfigurator().apply(this.configurator);
     }
 
+    /** Merges motor output (e.g. inversion) into the cached config and applies. */
+    public void applyMotorOutput(MotorOutputConfigs output) {
+        this.configurator.withMotorOutput(output);
+        this.applyConfig();
+    }
+
+    /** Applies Slot0 gains (PID + FF + gravity type) without replacing the full device config. */
+    public void applySlot0(Slot0Configs slot0) {
+        this.motor.getConfigurator().apply(slot0);
+    }
+
+    /** Position closed-loop to a mechanism setpoint (rotations after {@link #setGearRatio(double)}). */
+    public void setMechanismPosition(double mechanismRotations) {
+        this.motor.setControl(new PositionDutyCycle(mechanismRotations));
+    }
+
+    public void stopMotor() {
+        this.motor.stopMotor();
+    }
+
     /**
      * Assigns the defualt PID values to the motor assumes P = 0.1, I = 0, D = 0
      * see also {@link #assignPIDValues(double, double, double)}
@@ -77,6 +102,41 @@ public class TalonFxContainer implements MotorContainer{
         slot.kI = I;
         slot.kD = D;
         this.applyConfig();
+    }
+
+    /**
+     * Enables live PID tuning via NetworkTables (SmartDashboard).
+     * Write updated values to these keys from AdvantageScope (NT4):
+     * <pre>
+     *   key + "P", key + "I", key + "D"
+     * </pre>
+     * Then call {@link #updatePIDFromDashboard()} periodically (while not on FMS).
+     */
+    public void enablePIDTuning(String key, double defaultP, double defaultI, double defaultD) {
+        pidTuningKey = key;
+        SmartDashboard.putNumber(pidTuningKey + "P", defaultP);
+        SmartDashboard.putNumber(pidTuningKey + "I", defaultI);
+        SmartDashboard.putNumber(pidTuningKey + "D", defaultD);
+        lastTunedP = defaultP;
+        lastTunedI = defaultI;
+        lastTunedD = defaultD;
+        assignPIDValues(defaultP, defaultI, defaultD);
+    }
+
+    /** If tuning is enabled, reads P/I/D from SmartDashboard and applies if changed. */
+    public void updatePIDFromDashboard() {
+        if (pidTuningKey == null) {
+            return;
+        }
+        double p = SmartDashboard.getNumber(pidTuningKey + "P", lastTunedP);
+        double i = SmartDashboard.getNumber(pidTuningKey + "I", lastTunedI);
+        double d = SmartDashboard.getNumber(pidTuningKey + "D", lastTunedD);
+        if (p != lastTunedP || i != lastTunedI || d != lastTunedD) {
+            lastTunedP = p;
+            lastTunedI = i;
+            lastTunedD = d;
+            assignPIDValues(p, i, d);
+        }
     }
 
     /**
@@ -145,7 +205,9 @@ public class TalonFxContainer implements MotorContainer{
     public boolean goToPostion(double pos, double deadband) {
         var request = new PositionDutyCycle(pos);
         motor.setControl(request);
-        return motor.getPosition().getValue().isNear(Angle.ofBaseUnits(pos, Degree), deadband);
+        // Compare in mechanism rotations (matches PositionDutyCycle setpoint and SensorToMechanismRatio).
+        double currentRotations = motor.getPosition().getValueAsDouble();
+        return Math.abs(currentRotations - pos) <= deadband;
     }
     
     /**
