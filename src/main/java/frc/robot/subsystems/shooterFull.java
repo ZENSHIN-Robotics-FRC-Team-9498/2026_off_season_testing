@@ -1,11 +1,15 @@
 package frc.robot.subsystems;
 
-import com.revrobotics.spark.SparkMax;
+import java.util.Set;
+
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.SparkMax;
 
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.ShooterSettings;
 
 public class shooterFull extends SubsystemBase {
     private final TalonFX shooterMotor1 = new TalonFX(39);
@@ -13,59 +17,39 @@ public class shooterFull extends SubsystemBase {
     private final TalonFX shooterMoter5 = new TalonFX(15);
     private final SparkMax shooterMotor3 = new SparkMax(36, MotorType.kBrushless);
     private final SparkMax shooterMotor4 = new SparkMax(37, MotorType.kBrushless);
-
-    /** Creates a new ExampleSubsystem. */
-    public shooterFull() {
-    }
+    private final ShooterSettings settings = new ShooterSettings();
 
     public Command on() {
-        // Inline construction of command goes here.
-        // Subsystem::RunOnce implicitly requires `this` subsystem.
-        return run(
-            () -> {
-            shooterMotor3.set(1);
-            shooterMotor4.set(-1);
-            try {
-                Thread.sleep(1000); 
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            shooterMotor1.set(-0.5);
-            shooterMotor2.set(0.5);
-            shooterMoter5.set(0.5);
-            });
+        // 設定は射撃開始時に読み、射撃中のDashboard編集で出力を急変させない。
+        return Commands.defer(() -> {
+            double flywheelOutput = settings.flywheelOutput();
+            double feedOutput = settings.feedOutput();
+            return Commands.sequence(
+                runOnce(() -> {
+                    stop();
+                    shooterMotor3.set(flywheelOutput);
+                    shooterMotor4.set(-flywheelOutput);
+                }),
+                Commands.waitSeconds(1.0),
+                runOnce(() -> {
+                    shooterMotor1.set(-feedOutput);
+                    shooterMotor2.set(feedOutput);
+                    shooterMoter5.set(feedOutput);
+                }),
+                Commands.idle(this)
+            );
+        }, Set.of(this)).finallyDo(this::stop);
     }
 
     public Command off() {
-        // Inline construction of command goes here.
-        // Subsystem::RunOnce implicitly requires `this` subsystem.
-        return runOnce(
-            () -> {
-            shooterMotor1.set(0);
-            shooterMotor2.set(0);
-            shooterMotor3.set(0);
-            shooterMotor4.set(0);
-            shooterMoter5.set(0);
-            });
+        return runOnce(this::stop);
     }
 
-    /**
-     * An example method querying a boolean state of the subsystem (for example, a digital sensor).
-     *
-     * @return value of some boolean subsystem state, such as a digital sensor.
-     */
-    public boolean exampleCondition() {
-        // Query some boolean state, such as a digital sensor.
-        return false;
-    }
-
-    @Override
-    public void periodic() {
-        // This method will be called once per scheduler run
-    }
-
-    @Override
-    public void simulationPeriodic() {
-        // This method will be called once per scheduler run during simulation
+    private void stop() {
+        shooterMotor1.set(0);
+        shooterMotor2.set(0);
+        shooterMoter5.set(0);
+        shooterMotor3.set(0);
+        shooterMotor4.set(0);
     }
 }
